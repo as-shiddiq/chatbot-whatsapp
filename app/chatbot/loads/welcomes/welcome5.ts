@@ -38,17 +38,17 @@ export const welcome5 = async (sock,m): Promise <void> => {
                         { quoted: mGet });
             
             //kirim pesan ke web admin untuk memulai chat
-            let setSession = btoa(randomAdmin.number+from);
+            let setSession = btoa(randomAdmin.number+"&&"+from);
             mess = '';
             mess += `Ada pesan baru dari *${mGet.pushName}*, silakan akses untuk membalas pesan\n`;
             mess += `${webUrl}?from=${setSession}`;
             await sock.sendMessage(randomAdmin.number+'@s.whatsapp.net',  
                         { text: mess }, 
                         { quoted: mGet });
-            //simpan info sebagai sessions chat
-            fs.writeFileSync(SESSIONS+'/'+setSession+'.json', JSON.stringify([], null, 2));
+            //simpan info sebagai sessions chat dan tentukan expirednya
+            let expiredAt = Date.now() + 30 * 60 * 1000;
+            fs.writeFileSync(SESSIONS+'/'+setSession+'.json', JSON.stringify({"expired":expiredAt.toString()}, null, 2));
         }
-        
     }
     else{
         console.log(`CONFIG belum dibuat di : ${CONFIG}`);

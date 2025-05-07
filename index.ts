@@ -7,6 +7,7 @@ import * as crypto from 'crypto';
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from "socket.io";
+import path from 'path';
 
 (globalThis as any).crypto = crypto;
 
@@ -23,6 +24,12 @@ httpServer.listen(3000, () => {
   console.log('Socket.IO server running at http://localhost:3000/');
 });
 
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'assets')));
+// Jika akses root, arahkan ke index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 // Socket.IO handler
 const users = new Map<string, string>(); 
 io.on('connection', (socket) => {
