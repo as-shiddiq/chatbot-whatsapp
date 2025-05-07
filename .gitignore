@@ -1,0 +1,10 @@
+.wwebjs_auth
+.sessions
+node_modules
+sessions
+package-lock.json
+
+build
+config/*
+!config/agents.example.json
+!config/app.example.json
