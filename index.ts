@@ -8,7 +8,6 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from "socket.io";
 
-
 (globalThis as any).crypto = crypto;
 
 //buat webserver
@@ -25,7 +24,6 @@ httpServer.listen(3000, () => {
 });
 
 // Socket.IO handler
-
 const users = new Map<string, string>(); 
 io.on('connection', (socket) => {
   const userId = socket.handshake.query.userId as string;
@@ -45,6 +43,9 @@ io.on('connection', (socket) => {
   });
 });
 
+
+
+//WhatsApp Baileys
 const waConnect = new Map();
 
 async function connectToWhatsApp () {
@@ -76,8 +77,12 @@ async function connectToWhatsApp () {
     });
 
     sock.ev.on('messages.upsert', async m => {
-        // chek jika grup RUP
+        console.log("UPSERT");
+        console.log(m);
+        console.log("\n\n");
         await chatBot(sock,m);
+
+        //
         const targetSocketId = users.get('6285156202101');
         io.to(targetSocketId).emit('sv.forwardMessage', { from: "akay", message: "beheh" });
     });

@@ -4,6 +4,7 @@ import { welcome } from './loads/welcome';
 import { welcome1 } from './loads/welcomes/welcome1';
 import { welcome2 } from './loads/welcomes/welcome2';
 import { welcome3 } from './loads/welcomes/welcome3';
+import { welcome5 } from './loads/welcomes/welcome5';
 import { notselected } from './loads/notselected';
 
 export const chatBot = async (sock,m): Promise <void> => {
@@ -54,6 +55,8 @@ export const chatBot = async (sock,m): Promise <void> => {
                     welcome2(sock, m);
                 } else if (msg === '3') {
                     welcome3(sock, m);
+                } else if (msg === '5') {
+                    welcome5(sock, m);
                 } else {
                     notselected(sock, m);
                 }

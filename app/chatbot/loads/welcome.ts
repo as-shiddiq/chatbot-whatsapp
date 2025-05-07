@@ -14,7 +14,7 @@ export const welcome = async (sock,m): Promise <void> => {
     mess += `2. Pilih dua\n`;
     mess += `3. Pilih tiga\n`;
     mess += `4. Pilih empat\n`;
-    mess += `4. Pilih empat\n`;
+    mess += `5. Chat Admin\n`;
     mess += `\n`;
     mess += `_#ID01_`;
     await sock.sendMessage(from!, {  
