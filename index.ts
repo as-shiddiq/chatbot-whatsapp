@@ -25,7 +25,7 @@ httpServer.listen(3000, () => {
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname, 'assets')));
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
 // Jika akses root, arahkan ke index.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -49,8 +49,6 @@ io.on('connection', (socket) => {
     }
   });
 });
-
-
 
 //WhatsApp Baileys
 const waConnect = new Map();
@@ -85,13 +83,25 @@ async function connectToWhatsApp () {
 
     sock.ev.on('messages.upsert', async m => {
         console.log("UPSERT");
-        console.log(m);
+        console.log(m.messages[0]);
         console.log("\n\n");
-        await chatBot(sock,m);
-
-        //
-        const targetSocketId = users.get('6285156202101');
-        io.to(targetSocketId).emit('sv.forwardMessage', { from: "akay", message: "beheh" });
+        //cek apakah dari chat pribadi
+        let jId = m.messages[0].key.remoteJid;
+        let fromMe = m.messages[0].key.fromMe;
+        if(jId.endsWith('@s.whatsapp.net'))
+        {
+            console.log(`Private : ${jId}`);
+            await chatBot(sock,m);
+            //
+            if(!fromMe)
+            {
+                const targetSocketId = users.get('6285156202101');
+                io.to(targetSocketId).emit('sv.forwardMessage', { from: "akay", message: "beheh" });
+            }
+        }
+        else{
+            console.log(`Bukan private : ${jId}`);
+        }
     });
 }
 

@@ -12,11 +12,13 @@
 <body>
     <div class="container p-3 d-flex justify-content-between flex-column" style="height: 100vh;">
         <div>
-            <img src="/assets/logo.png" alt="">
-            <button class="btn-primary btn btn-sm" onclick="sendMessage()">Kirim</button>
-            <ul id="chat"></ul>
+            <img src="/assets/logo.png" alt="" height="100px">
+            <div>
+                <ul id="chat"></ul>
+                <button class="btn-primary btn btn-sm" onclick="sendMessage()">Kirim</button>
+            </div>
         </div>
-        <div style="pos">
+        <div>
             <small class="info-ws"></small>
         </div>
     </div>
@@ -29,13 +31,12 @@
 <script type="text/javascript">
     // Ambil query string ?from=... dari URL
     const urlParams = new URLSearchParams(window.location.search);
-    const from = urlParams.get('from') || 'anonymous';
-    const dest = '6283159236892';
+    const token = urlParams.get('token') || 'anonymous';
     let elInfoWs = document.querySelector('.info-ws');
 
     // Inisialisasi koneksi socket dengan query userId
     const socket = io("http://localhost:3000", {
-        query: { userId: from }
+        query: { userId: token }
     });
 
     socket.on("connect", () => {
@@ -52,7 +53,7 @@
 
     function sendMessage() {
         const msg = "halo gus";
-        socket.emit("cl.sendMessage", { dest: dest, message: msg });
+        socket.emit("cl.sendMessage", { token: token, message: msg });
     }
 
     socket.on("sv.forwardMessage", (msg) => {

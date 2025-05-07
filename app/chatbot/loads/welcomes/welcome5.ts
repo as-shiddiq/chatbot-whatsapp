@@ -41,7 +41,7 @@ export const welcome5 = async (sock,m): Promise <void> => {
             let setSession = btoa(randomAdmin.number+"&&"+from);
             mess = '';
             mess += `Ada pesan baru dari *${mGet.pushName}*, silakan akses untuk membalas pesan\n`;
-            mess += `${webUrl}?from=${setSession}`;
+            mess += `${webUrl}?token=${setSession}`;
             await sock.sendMessage(randomAdmin.number+'@s.whatsapp.net',  
                         { text: mess }, 
                         { quoted: mGet });
