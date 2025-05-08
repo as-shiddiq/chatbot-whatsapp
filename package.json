@@ -1,7 +1,7 @@
 {
-    "name": "wabotts",
+    "name": "wahh",
     "version": "1.0.0",
-    "description": "Whatsapp BOT Typescript",
+    "description": "Whatsapp HelpHub",
     "main": "index.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
