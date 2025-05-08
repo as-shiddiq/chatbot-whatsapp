@@ -51,7 +51,10 @@ export const chatBot = async (sock,m,io,users): Promise <void> => {
         if (!fs.existsSync(chatSession)) {
             // console.log(mExt.contextInfo.quotedMessage.imageMessage.caption.includes('#ID01'))
             if (mQuoted=='') {
-                await welcome(sock,m);
+                if(msg.toLocaleLowerCase()=='halo')
+                {
+                    await welcome(sock,m);
+                }
             } 
             else if (mQuoted.includes('#ID01')) {
                     if (msg === '1') {
@@ -76,11 +79,11 @@ export const chatBot = async (sock,m,io,users): Promise <void> => {
             const data = JSON.parse(fs.readFileSync(chatSession, 'utf-8'));
             const expiredAt = parseInt(data.expired_at); // konversi string ke angka
             const now = Date.now();
-
             if (now < expiredAt) {
                 let token = btoa(data.to+"&&"+(from).split('@').shift())
                 const targetSocketId = users.get(token);
-                let message = {text:msg,status:"member",image:null};
+                // generate message format
+                let message = {text:msg,status:"member",image:null,'timestamp':Date.now()};
                 io.to(targetSocketId).emit('sv.sendMessage', { token:token , message: message });
                 let expiredAt = Date.now() + 60 * 60 * 1000;
                 data.expired_at = expiredAt;

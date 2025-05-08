@@ -114,19 +114,22 @@ async function connectToWhatsApp () {
 
 
       //jika ada pesan yang dikirim dari client dalam hal ini admin
-      socket.on("cl.sendMessage", async (resp) => {
+      socket.on("cl.sendMessage", async (resp,callback) => {
         console.log(`[${userId}] says:`, resp);
         //cek apakah token ada
         let token = resp.token;
+        
+        //tambah informasi pesan dibuat
         let message = resp.message;
+        message.timestamp = Date.now();
+
         const targetSocketId = users.get(token);
         let tokenDec = atob(resp.token);
 
         let chatSessionAdmin = SESSIONS_ADMIN+'/'+tokenDec.split('&&').shift()+'/'+tokenDec.split('&&').pop()+'.json';
         if (fs.existsSync(chatSessionAdmin)) {
           const dataAdmin = JSON.parse(fs.readFileSync(chatSessionAdmin, 'utf-8'));
-
-          const expiredAt = parseInt(dataAdmin.expired_at); // konversi string ke angka
+          const expiredAt = parseInt(dataAdmin.expired_at); 
           const now = Date.now();
           if (now < expiredAt) {
             let dest = tokenDec.split('&&').pop()+'@s.whatsapp.net';
@@ -138,6 +141,7 @@ async function connectToWhatsApp () {
               }
               dataAdmin.message.push(message);
               fs.writeFileSync(chatSessionAdmin, JSON.stringify(dataAdmin, null, 2));
+              callback({ success: true });
           } else {
             io.to(targetSocketId).emit('sv.sendMessage', { token:token , message: {text:"❌ chat session sudah tidak aktif",status:"error"} });
           }

@@ -8,15 +8,50 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
     <style>
-        #chat {
-            list-style: none;
-            padding: 0;
-        }
         .italic {
             font-style: italic;
         }
         .bg-light-secondary{
             background-color: #ddd;
+        }
+        #chat-list {
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 300px); 
+            overflow-y: auto;
+            margin-bottom:20px;
+        }
+        #chat-list::-webkit-scrollbar {
+            width: 8px;  /* Lebar scrollbar */
+        }
+
+        #chat-list::-webkit-scrollbar-thumb {
+            background-color: #007bff; /* Warna thumb scrollbar */
+            border-radius: 10px; /* Membuat ujung scrollbar melengkung */
+        }
+
+        #chat-list::-webkit-scrollbar-track {
+            background-color: #f1f1f1; /* Warna latar belakang track scrollbar */
+            border-radius: 10px; /* Membuat ujung track melengkung */
+        }
+        #chat-input {
+            resize: none; /* Menghilangkan fitur resize */
+            overflow-y: auto;
+            border:0;
+            height: 30px;
+        }
+        #chat-input::placeholder {
+            color: #999;
+        }
+        #emoji-picker {
+            position: absolute;
+            bottom: 30px;  /* Sesuaikan dengan posisi chat */
+            left: 0px;   /* Sesuaikan dengan posisi tombol */
+            z-index: 999;
+            display: none;  /* Emoji picker disembunyikan secara default */
+        }
+        .no-link{
+            text-decoration: none;
         }
     </style>
 </head>
@@ -24,15 +59,30 @@
 <body>
     <div class="container p-3 d-flex justify-content-between flex-column" style="height: 100vh;">
         <div>
-            <img src="/assets/logo.png" alt="" height="100px">
-            <div>
-                <h3 class="chat-name"></h3>
-                <ul id="chat"></ul>
-                <div>
-                    <textarea name="message" class="form-control mb-2"></textarea>
-                    <button class="btn-primary btn btn-sm" onclick="sendMessage()">Kirim</button>
+            <img src="/assets/logo.png" alt="" height="80px">
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="bg-light p-3 rounded rounded-4 shadow-sm " style="height: calc(100vh - 190px);">
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div>
+                        <h3 class="chat-name"></h3>
+                        <div class="pe-3" id="chat-list">
+                        </div>
+
+                        <div class="input-container d-flex align-items-center gap-1 justify-content-between bg-light p-2 rounded-4 shadow-sm ">
+                            <div class="rounded-circle" style="width: 30px;height: 30px;text-align: center;padding: 0;position: relative;background-color: #8882;">
+                                <emoji-picker id="emoji-picker"></emoji-picker>
+                                <div id="emoji-btn" class="fs-5"><a href="javascript:;" class="no-link">😊</a></div>
+                            </div>
+                            <textarea id="chat-input" placeholder="Masukkan pesan..." class="form-control bg-light d-flex align-center" style="vertical-align: middle;"></textarea>
+                        </div>
+                        <div>
+                    </div>
                 </div>
             </div>
+            
         </div>
         <div>
             <small class="info-ws"></small>
@@ -44,23 +94,56 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-j1CDi7MgGQ12Z7Qab0qlWQ/Qqz24Gc6BM0thvEMVjHnfYGF0rmFCozFSxQBxwHKO"
     crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
 <script type="text/javascript">
     // Ambil query string ?from=... dari URL
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token') || 'anonymous';
     let elInfoWs = document.querySelector('.info-ws');
-    let elChat = document.querySelector('#chat');
+    let elChatList = document.querySelector('#chat-list');
     let baseUrl = 'http://localhost:3000';
     let loadedChat = false;
+    // Ambil elemen HTML
+    const emojiPicker = document.getElementById('emoji-picker');
+    const emojiButton = document.getElementById('emoji-btn');
+    const chatInput = document.getElementById('chat-input');
+    let elChatInput = document.querySelector('#chat-input');
+
+    emojiButton.addEventListener('click', () => {
+        // Jika picker sudah terlihat, sembunyikan
+        if (emojiPicker.style.display === 'block') {
+            emojiPicker.style.display = 'none';
+        } else {
+            // Jika tidak, tampilkan
+            emojiPicker.style.display = 'block';
+        }
+    });
+
+    emojiPicker.addEventListener('emoji-click', (e) => {
+        const emoji = e.detail.unicode;
+        const start = chatInput.selectionStart;
+        const end = chatInput.selectionEnd;
+
+        // Tambahkan emoji pada posisi kursor
+        chatInput.value = chatInput.value.substring(0, start) + emoji + chatInput.value.substring(end);
+
+        // Fokus kembali ke chat input dan set posisi kursor setelah emoji
+        chatInput.focus();
+        chatInput.selectionStart = chatInput.selectionEnd = start + emoji.length;
+        emojiPicker.style.display = 'none';
+    });
+    
     let getChatList = async () => {
         let get = await fetch(`${baseUrl}/chatlist?token=${token}`);
         let resp = await get.json();
         let msg = resp.message;
-        document.querySelector('.chat-name').innerHTML = resp.name;
+        document.querySelector('.chat-name').innerHTML = resp.name??"";
         for(i in msg)
         {
-            elChat.innerHTML += chatTemplate(msg[i]);
+            elChatList.innerHTML += chatTemplate(msg[i]);
         }
+        elChatList.scrollTop = elChatList.scrollHeight; 
     }
     getChatList();
 
@@ -94,34 +177,67 @@
         let cd = '';
         if(d.status=='error')
         {
-            cl = `text-center`;
-            cd = `badge text-center bg-light-secondary text-danger italic py-1 px-3 fw-normal`
+            return `<div class="d-flex mb-3 justify-content-center">
+                    <div class="badge bg-light-secondary text-danger fw-normal italic">${d.text}</div>
+                </div>`
         }
+        else
+        {
+            const text = d.text.replace(/\n/g, '<br>');
+            if (d.status == 'member') {
+                cl = `bg-light p-3 rounded rounded-4 shadow-sm me-auto`;
+                clt = ` style="color:#2228;font-size:.7rem"`;
+            }
+            else if (d.status == 'admin') {
+                cl = `bg-primary text-white p-3 rounded rounded-4 shadow-sm ms-auto`;
+                clt = ` style="color:#fff8;text-align:end;font-size:.7rem"`;
+            }
 
-        return `<li class="${cl}">
-                    <div class="${cd}">
-                    ${d.text}
+            return `<div class="d-flex mb-3">
+                    <div class="${cl}" style="max-width: 75%;">
+                    <div>${text}</div>
+                        <div class="mt-1" ${clt}>
+                            <small>${moment(d.timestamp).format('DD MMM YYYY HH:mm')}</small>
+                        </div>
                     </div>
-                </li>`
+                </div>
+                `
+        }
     }
+    elChatInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();  // Menghentikan default behavior Enter (membuat baris baru)
+            sendMessage();       // Kirim pesan saat Enter ditekan
+        } 
+    });
+
+    elChatInput.addEventListener('click', function (e) {
+        emojiPicker.style.display = 'none';
+    });
 
     function sendMessage() {
-        let elMessage = document.querySelector('[name=message]');
-        const msg = elMessage.value;
+        const msg = elChatInput.value;
         if(msg.trim()!='')
         {
             let image = null;
-            elMessage.value = '';
             let message = { text: msg, image: image, status: 'admin' };
-            elChat.innerHTML += chatTemplate(message);
-            socket.emit("cl.sendMessage", { token: token, message: message });  
+            socket.emit("cl.sendMessage", { token: token, message: message }, (response) => {
+                if (response.success) {
+                    elChatInput.value = '';
+                    elChatList.innerHTML += chatTemplate(message);
+                } else {
+                    elChatList.innerHTML += chatTemplate({ text: "🚫 pesan tidak dapat dikirim", status: "error" });
+                }
+                elChatList.scrollTop = elChatList.scrollHeight; 
+            });
 
         }
     }
 
     socket.on("sv.sendMessage", (msg) => {
         console.log("Dari server:", msg);
-        elChat.innerHTML+=chatTemplate(msg.message);
+        elChatList.innerHTML+=chatTemplate(msg.message);
+        elChatList.scrollTop = elChatList.scrollHeight; 
     });
 </script>
 
