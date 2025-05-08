@@ -5,7 +5,7 @@ import { chatBot } from './app/chatbot';
 import { welcome } from './app/chatbot/loads/welcome';
 import {splash} from './app/splash';
 import QRCode from 'qrcode'
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { createServer } from 'http';
 import { Server } from "socket.io";
 import fs from 'fs';
@@ -30,10 +30,10 @@ httpServer.listen(3000, () => {
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 // Jika akses root, arahkan ke index.html
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-app.get('/chatlist', (req, res) => {
+app.get('/chatlist', (req: Request, res: Response) => {
   let token = req.query.token as string;
   if(!token)
   {
