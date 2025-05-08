@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "build": "tsc",
+        "build": "tsc && cp -r public build/public && cp -r assets build/assets",
         "serve": "node build/index.js",
         "start": "ts-node index.ts",
         "dev": "ts-node index.ts"
