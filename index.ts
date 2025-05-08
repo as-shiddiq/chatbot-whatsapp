@@ -33,7 +33,7 @@ app.use('/assets', express.static(path.join(__dirname, 'assets')));
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-app.get('/chatlist', async (req, res) => {
+app.get('/chatlist', (req, res) => {
   let token = req.query.token as string;
   if(!token)
   {
