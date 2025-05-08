@@ -1,5 +1,6 @@
 .wwebjs_auth
 .sessions
+.DS_Store
 node_modules
 package-lock.json
 
