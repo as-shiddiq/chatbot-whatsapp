@@ -7,6 +7,18 @@
     <title>ChatBot</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
+    <style>
+        #chat {
+            list-style: none;
+            padding: 0;
+        }
+        .italic {
+            font-style: italic;
+        }
+        .bg-light-secondary{
+            background-color: #ddd;
+        }
+    </style>
 </head>
 
 <body>
@@ -14,8 +26,12 @@
         <div>
             <img src="/assets/logo.png" alt="" height="100px">
             <div>
+                <h3 class="chat-name"></h3>
                 <ul id="chat"></ul>
-                <button class="btn-primary btn btn-sm" onclick="sendMessage()">Kirim</button>
+                <div>
+                    <textarea name="message" class="form-control mb-2"></textarea>
+                    <button class="btn-primary btn btn-sm" onclick="sendMessage()">Kirim</button>
+                </div>
             </div>
         </div>
         <div>
@@ -33,15 +49,36 @@
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token') || 'anonymous';
     let elInfoWs = document.querySelector('.info-ws');
+    let elChat = document.querySelector('#chat');
+    let baseUrl = 'http://localhost:3000';
+    let loadedChat = false;
+    let getChatList = async () => {
+        let get = await fetch(`${baseUrl}/chatlist?token=${token}`);
+        let resp = await get.json();
+        let msg = resp.message;
+        document.querySelector('.chat-name').innerHTML = resp.name;
+        for(i in msg)
+        {
+            elChat.innerHTML += chatTemplate(msg[i]);
+        }
+    }
+    getChatList();
 
     // Inisialisasi koneksi socket dengan query userId
-    const socket = io("http://localhost:3000", {
+    const socket = io(baseUrl, {
         query: { userId: token }
     });
 
     socket.on("connect", () => {
         elInfoWs.innerHTML = "Connected to WebSocket";
+        elInfoWs.classList.remove('text-danger');
         elInfoWs.classList.add('text-success');
+    });
+
+    socket.on("disconnect", (reason) => {
+        elInfoWs.innerHTML = `Disconnected from WebSocket: ${reason}`;
+        elInfoWs.classList.add('text-danger');
+        elInfoWs.classList.remove('text-success');
     });
 
     socket.on("message", (msg) => {
@@ -51,18 +88,40 @@
         chat.appendChild(li);
     });
 
-    function sendMessage() {
-        const msg = "halo gus";
-        socket.emit("cl.sendMessage", { token: token, message: msg });
+    function chatTemplate(d){
+        let html = ``;
+        let cl = '';
+        let cd = '';
+        if(d.status=='error')
+        {
+            cl = `text-center`;
+            cd = `badge text-center bg-light-secondary text-danger italic py-1 px-3 fw-normal`
+        }
+
+        return `<li class="${cl}">
+                    <div class="${cd}">
+                    ${d.text}
+                    </div>
+                </li>`
     }
 
-    socket.on("sv.forwardMessage", (msg) => {
-        console.log("Dari server:", msg);
-    });
+    function sendMessage() {
+        let elMessage = document.querySelector('[name=message]');
+        const msg = elMessage.value;
+        if(msg.trim()!='')
+        {
+            let image = null;
+            elMessage.value = '';
+            let message = { text: msg, image: image, status: 'admin' };
+            elChat.innerHTML += chatTemplate(message);
+            socket.emit("cl.sendMessage", { token: token, message: message });  
 
-    socket.on("disconnect", (reason) => {
-        elInfoWs.innerHTML = `Disconnected from WebSocket: ${reason}`;
-        elInfoWs.classList.add('text-danger');
+        }
+    }
+
+    socket.on("sv.sendMessage", (msg) => {
+        console.log("Dari server:", msg);
+        elChat.innerHTML+=chatTemplate(msg.message);
     });
 </script>
 

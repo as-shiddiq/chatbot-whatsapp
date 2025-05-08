@@ -1,7 +1,6 @@
 .wwebjs_auth
 .sessions
 node_modules
-sessions
 package-lock.json
 
 build

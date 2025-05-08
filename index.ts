@@ -2,14 +2,16 @@ import makeWASocket, { DisconnectReason, delay, BufferJSON, useMultiFileAuthStat
 import P from 'pino'
 import {Boom} from '@hapi/boom'
 import { chatBot } from './app/chatbot';
+import { welcome } from './app/chatbot/loads/welcome';
+import {splash} from './app/splash';
 import QRCode from 'qrcode'
-import * as crypto from 'crypto';
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from "socket.io";
+import fs from 'fs';
 import path from 'path';
-
-(globalThis as any).crypto = crypto;
+const SESSIONS_ADMIN = './writables/admins';
+// (globalThis as any).crypto = crypto;
 
 //buat webserver
 const app = express();
@@ -21,7 +23,8 @@ const io = new Server(httpServer, {
 });
 
 httpServer.listen(3000, () => {
-  console.log('Socket.IO server running at http://localhost:3000/');
+  splash();
+  console.log('server running at http://localhost:3000/');
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -30,26 +33,26 @@ app.use('/assets', express.static(path.join(__dirname, 'assets')));
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+app.get('/chatlist', async (req, res) => {
+  let token = req.query.token as string;
+  if(!token)
+  {
+     return res.status(500).json({ error: 'Token tidak sesuai' });
+  }
+  let tokenDec = atob(token);
+  let chatSessionAdmin = SESSIONS_ADMIN+'/'+tokenDec.split('&&').shift()+'/'+tokenDec.split('&&').pop()+'.json';
+  if (fs.existsSync(chatSessionAdmin)) {
+    const data = JSON.parse(fs.readFileSync(chatSessionAdmin, 'utf-8'));
+    res.json(data);
+  }
+  else
+  {
+    return res.status(500).json({ error: 'Token tidak ditemukan' });
+  } 
+  console.log(req.query.token);
+});
 // Socket.IO handler
 const users = new Map<string, string>(); 
-io.on('connection', (socket) => {
-  const userId = socket.handshake.query.userId as string;
-  if (userId) {
-    users.set(userId, socket.id);
-    console.log(`User ${userId} connected with socket ID ${socket.id}`);
-  }
-
-  socket.on("cl.sendMessage", (msg) => {
-    console.log(`[${userId}] says:`, msg);
-  });
-
-  socket.on('disconnect', () => {
-    if (userId) {
-      users.delete(userId);
-    }
-  });
-});
-
 //WhatsApp Baileys
 const waConnect = new Map();
 
@@ -61,6 +64,7 @@ async function connectToWhatsApp () {
         browser:Browsers.macOS("ZETA")  
     })
 
+    //update credintials
     sock.ev.on('creds.update', saveCreds)
 
     sock.ev.on('connection.update', async (update) => {
@@ -81,6 +85,7 @@ async function connectToWhatsApp () {
         }
     });
 
+    //chat masuk
     sock.ev.on('messages.upsert', async m => {
         console.log("UPSERT");
         console.log(m.messages[0]);
@@ -91,18 +96,68 @@ async function connectToWhatsApp () {
         if(jId.endsWith('@s.whatsapp.net'))
         {
             console.log(`Private : ${jId}`);
-            await chatBot(sock,m);
-            //
-            if(!fromMe)
-            {
-                const targetSocketId = users.get('6285156202101');
-                io.to(targetSocketId).emit('sv.forwardMessage', { from: "akay", message: "beheh" });
-            }
+            await chatBot(sock,m,io,users);
         }
         else{
             console.log(`Bukan private : ${jId}`);
         }
     });
+
+
+    //IO Handler
+    io.on('connection', async (socket) => {
+      const userId = socket.handshake.query.userId as string;
+      if (userId) {
+        users.set(userId, socket.id);
+        console.log(`User ${userId} connected with socket ID ${socket.id}`);
+      }
+
+
+      //jika ada pesan yang dikirim dari client dalam hal ini admin
+      socket.on("cl.sendMessage", async (resp) => {
+        console.log(`[${userId}] says:`, resp);
+        //cek apakah token ada
+        let token = resp.token;
+        let message = resp.message;
+        const targetSocketId = users.get(token);
+        let tokenDec = atob(resp.token);
+
+        let chatSessionAdmin = SESSIONS_ADMIN+'/'+tokenDec.split('&&').shift()+'/'+tokenDec.split('&&').pop()+'.json';
+        if (fs.existsSync(chatSessionAdmin)) {
+          const dataAdmin = JSON.parse(fs.readFileSync(chatSessionAdmin, 'utf-8'));
+
+          const expiredAt = parseInt(dataAdmin.expired_at); // konversi string ke angka
+          const now = Date.now();
+          if (now < expiredAt) {
+            let dest = tokenDec.split('&&').pop()+'@s.whatsapp.net';
+            await sock.sendMessage(dest,{ text: message.text });
+
+            //update chat admin
+            if (!Array.isArray(dataAdmin.message)) {
+                  dataAdmin.message = [];
+              }
+              dataAdmin.message.push(message);
+              fs.writeFileSync(chatSessionAdmin, JSON.stringify(dataAdmin, null, 2));
+          } else {
+            io.to(targetSocketId).emit('sv.sendMessage', { token:token , message: {text:"❌ chat session sudah tidak aktif",status:"error"} });
+          }
+          console.log(`Chat session : ${token}`);
+        }
+        else
+        {
+          io.to(targetSocketId).emit('sv.sendMessage', { token:token , message: {text:"🚫 chat session tidak ada",status:"error"} });
+        } 
+
+       
+      });
+
+      socket.on('disconnect', () => {
+        if (userId) {
+          users.delete(userId);
+        }
+      });
+    });
+
 }
 
 connectToWhatsApp()
